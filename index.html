@@ -3,17 +3,22 @@
 <head>
 <meta charset="UTF-8">
 
-<!-- Excel Library -->
 <script src="https://cdn.jsdelivr.net/npm/xlsx/dist/xlsx.full.min.js"></script>
 
 <style>
-body { font-family: Arial; margin: 10px; }
-
-input, select, button {
-  padding: 5px;
-  margin: 5px;
+body {
+  font-family: Arial;
+  margin: 10px;
 }
 
+/* FILTER */
+input, select, button {
+  padding: 6px;
+  margin: 5px;
+  font-size: 14px;
+}
+
+/* TABLE DESKTOP */
 table {
   width: 100%;
   border-collapse: collapse;
@@ -28,12 +33,66 @@ th, td {
 
 th { background: #f2f2f2; }
 
-.date-col { width: 120px; white-space: nowrap; }
-.artikel-col { max-width: 400px; }
+/* WIDTH CONTROL */
+th:nth-child(1) { width: 40px; }
+th:nth-child(2) { width: 100px; }
+th:nth-child(3) { width: 200px; }
+th:nth-child(4) { width: 400px; }
+th:nth-child(5) { width: 80px; }
+th:nth-child(6) { width: 100px; }
 
-.pagination { margin-top: 10px; }
+td { word-wrap: break-word; }
 
-button { cursor: pointer; }
+/* EXPAND ROW */
+.expand-row {
+  background: #fafafa;
+}
+
+/* PAGINATION */
+.pagination {
+  margin-top: 10px;
+}
+
+/* ========================= */
+/* 📱 MOBILE MODE */
+/* ========================= */
+@media (max-width: 768px) {
+
+  table, thead, tbody, th, td, tr {
+    display: block;
+  }
+
+  thead {
+    display: none;
+  }
+
+  tr {
+    margin-bottom: 10px;
+    border: 1px solid #ddd;
+    padding: 10px;
+    border-radius: 8px;
+    background: #fff;
+  }
+
+  td {
+    border: none;
+    padding: 5px 0;
+  }
+
+  td::before {
+    font-weight: bold;
+    display: block;
+    color: #555;
+  }
+
+  td:nth-child(1)::before { content: "No"; }
+  td:nth-child(2)::before { content: "Date"; }
+  td:nth-child(3)::before { content: "Title"; }
+  td:nth-child(4)::before { content: "Artikel"; }
+  td:nth-child(5)::before { content: "Lapus"; }
+  td:nth-child(6)::before { content: "Aksi"; }
+
+}
 </style>
 </head>
 
@@ -42,7 +101,7 @@ button { cursor: pointer; }
 <!-- FILTER -->
 <input type="text" id="keyword" placeholder="Keyword">
 
-<input type="date" id="date_from">
+<input type="date" id="date_from" onchange="autoFillDateTo()">
 <input type="date" id="date_to">
 
 <select id="lapus">
@@ -68,7 +127,7 @@ button { cursor: pointer; }
 
 <button onclick="applyFilter()">Search</button>
 <button onclick="resetData()">Reset</button>
-<button onclick="exportExcel()">📥 Export Excel</button>
+<button onclick="exportExcel()">📥</button>
 
 <p id="info"></p>
 
@@ -76,9 +135,9 @@ button { cursor: pointer; }
 <thead>
 <tr>
 <th>No</th>
-<th class="date-col">Date</th>
+<th>Date</th>
 <th>Title</th>
-<th class="artikel-col">Artikel</th>
+<th>Artikel</th>
 <th>Lapus</th>
 <th>Aksi</th>
 </tr>
@@ -98,44 +157,31 @@ let filteredData = [];
 let currentPage = 1;
 const perPage = 15;
 
-// =====================
-// LOAD DATA
-// =====================
+// LOAD
 fetch("data.json")
-.then(res => res.json())
-.then(json => {
+.then(res=>res.json())
+.then(json=>{
   data = json;
   data.sort((a,b)=> b.date.localeCompare(a.date));
   showDefault();
 });
 
-// =====================
-// DEFAULT VIEW
-// =====================
+// DEFAULT
 function showDefault(){
-  if(data.length === 0) return;
-
   const latestMonth = data[0].date.slice(0,7);
-
-  filteredData = data.filter(d => d.date.startsWith(latestMonth));
-  currentPage = 1;
-
+  filteredData = data.filter(d=> d.date.startsWith(latestMonth));
+  currentPage=1;
   renderPage();
-
-  document.getElementById("info").innerText =
-    "Menampilkan bulan terbaru ("+latestMonth+")";
 }
 
-// =====================
 // FILTER
-// =====================
 function applyFilter(){
   const keyword = document.getElementById("keyword").value.toLowerCase();
   const lapus = document.getElementById("lapus").value;
   const from = document.getElementById("date_from").value;
   const to = document.getElementById("date_to").value;
 
-  filteredData = data.filter(d => {
+  filteredData = data.filter(d=>{
     return (
       (!keyword || d.title.toLowerCase().includes(keyword)) &&
       (!lapus || d.lapus === lapus) &&
@@ -144,115 +190,109 @@ function applyFilter(){
     );
   });
 
-  currentPage = 1;
+  currentPage=1;
   renderPage();
-
-  document.getElementById("info").innerText =
-    "Ditemukan "+filteredData.length+" berita";
 }
 
-// =====================
+// AUTO DATE
+function autoFillDateTo(){
+  if(data.length===0) return;
+  document.getElementById("date_to").value = data[0].date;
+}
+
 // RESET
-// =====================
 function resetData(){
   document.getElementById("keyword").value="";
   document.getElementById("lapus").value="";
   document.getElementById("date_from").value="";
   document.getElementById("date_to").value="";
-
   showDefault();
 }
 
-// =====================
 // PAGINATION
-// =====================
 function renderPage(){
-  const start = (currentPage-1)*perPage;
-  const end = start + perPage;
-
-  const pageData = filteredData.slice(start,end);
-
-  renderTable(pageData);
+  const start=(currentPage-1)*perPage;
+  const rows=filteredData.slice(start,start+perPage);
+  renderTable(rows);
 
   document.getElementById("page-info").innerText =
-    "Page "+currentPage+" / "+Math.max(1, Math.ceil(filteredData.length/perPage));
+    "Page "+currentPage+" / "+Math.max(1,Math.ceil(filteredData.length/perPage));
 }
 
 function nextPage(){
-  if(currentPage*perPage < filteredData.length){
-    currentPage++;
-    renderPage();
+  if(currentPage*perPage<filteredData.length){
+    currentPage++; renderPage();
   }
 }
 
 function prevPage(){
   if(currentPage>1){
-    currentPage--;
-    renderPage();
+    currentPage--; renderPage();
   }
 }
 
-// =====================
 // SHORT TEXT
-// =====================
-function shortenText(text){
-  if(!text) return "";
-  let s = text.split(".");
-  return s.slice(0,3).join(".") + "...";
+function shortText(text){
+  let s=text.split(".");
+  return s.slice(0,3).join(".")+"...";
 }
 
-// =====================
 // COPY
-// =====================
 function copyText(encoded){
-  const text = decodeURIComponent(encoded);
-  navigator.clipboard.writeText(text);
-  alert("✅ Artikel berhasil dicopy");
+  navigator.clipboard.writeText(decodeURIComponent(encoded));
+  alert("Copied!");
 }
 
-// =====================
-// FULL TEXT
-// =====================
-function showFull(encoded){
+// TOGGLE FULL
+function toggleFull(id, encoded){
+  let row = document.getElementById("expand-"+id);
+
+  if(row){
+    row.remove();
+    return;
+  }
+
   const text = decodeURIComponent(encoded);
-  alert(text);
+
+  const tr = document.createElement("tr");
+  tr.id = "expand-"+id;
+  tr.className = "expand-row";
+
+  tr.innerHTML = `<td colspan="6">${text}</td>`;
+
+  document.getElementById("row-"+id).after(tr);
 }
 
-// =====================
-// RENDER TABLE
-// =====================
+// RENDER
 function renderTable(rows){
-  const tbody = document.getElementById("table-body");
+  const tbody=document.getElementById("table-body");
   tbody.innerHTML="";
 
   rows.forEach((d,i)=>{
+    const id = (currentPage-1)*perPage + i;
     const encoded = encodeURIComponent(d.artikel);
 
     tbody.innerHTML += `
-    <tr>
-      <td>${(currentPage-1)*perPage + i + 1}</td>
-      <td class="date-col">${d.date}</td>
-      <td><a href="${d.link}" target="_blank">${d.title}</a></td>
-      <td class="artikel-col">${shortenText(d.artikel)}</td>
+    <tr id="row-${id}">
+      <td>${id+1}</td>
+      <td>${d.date}</td>
+      <td>${d.title}</td>
+      <td>${shortText(d.artikel)}</td>
       <td>${d.lapus}</td>
       <td>
         <button onclick="copyText('${encoded}')">📋</button>
-        <button onclick="showFull('${encoded}')">👁️</button>
+        <button onclick="toggleFull(${id}, '${encoded}')">👁️</button>
       </td>
     </tr>`;
   });
 }
 
-// =====================
-// EXPORT EXCEL
-// =====================
+// EXPORT
 function exportExcel(){
   let ws = XLSX.utils.json_to_sheet(filteredData);
   let wb = XLSX.utils.book_new();
-
   XLSX.utils.book_append_sheet(wb, ws, "Berita");
-
-  XLSX.writeFile(wb, "export_berita.xlsx");
+  XLSX.writeFile(wb, "export.xlsx");
 }
 </script>
 
