@@ -3,6 +3,9 @@
 <head>
 <meta charset="UTF-8">
 
+<!-- Excel Library -->
+<script src="https://cdn.jsdelivr.net/npm/xlsx/dist/xlsx.full.min.js"></script>
+
 <style>
 body { font-family: Arial; margin: 10px; }
 
@@ -20,16 +23,17 @@ table {
 th, td {
   border: 1px solid #ccc;
   padding: 8px;
+  vertical-align: top;
 }
 
 th { background: #f2f2f2; }
 
-.date-col { width: 120px; }
+.date-col { width: 120px; white-space: nowrap; }
 .artikel-col { max-width: 400px; }
 
-.pagination {
-  margin-top: 10px;
-}
+.pagination { margin-top: 10px; }
+
+button { cursor: pointer; }
 </style>
 </head>
 
@@ -42,29 +46,29 @@ th { background: #f2f2f2; }
 <input type="date" id="date_to">
 
 <select id="lapus">
-  <option value="">All Lapus</option>
-  <option value="A">A</option>
-  <option value="B">B</option>
-  <option value="C">C</option>
-  <option value="D">D</option>
-  <option value="E">E</option>
-  <option value="F">F</option>
-  <option value="G">G</option>
-  <option value="H">H</option>
-  <option value="I">I</option>
-  <option value="J">J</option>
-  <option value="K">K</option>
-  <option value="L">L</option>
-  <option value="MN">MN</option>
-  <option value="O">O</option>
-  <option value="P">P</option>
-  <option value="Q">Q</option>
-  <option value="RSTU">RSTU</option>
+<option value="">All Lapus</option>
+<option value="A">A</option>
+<option value="B">B</option>
+<option value="C">C</option>
+<option value="D">D</option>
+<option value="E">E</option>
+<option value="F">F</option>
+<option value="G">G</option>
+<option value="H">H</option>
+<option value="I">I</option>
+<option value="J">J</option>
+<option value="K">K</option>
+<option value="L">L</option>
+<option value="MN">MN</option>
+<option value="O">O</option>
+<option value="P">P</option>
+<option value="Q">Q</option>
+<option value="RSTU">RSTU</option>
 </select>
 
 <button onclick="applyFilter()">Search</button>
 <button onclick="resetData()">Reset</button>
-<button onclick="exportExcel()">Export Excel</button>
+<button onclick="exportExcel()">📥 Export Excel</button>
 
 <p id="info"></p>
 
@@ -83,9 +87,9 @@ th { background: #f2f2f2; }
 </table>
 
 <div class="pagination">
-<button onclick="prevPage()">Prev</button>
+<button onclick="prevPage()">⬅️</button>
 <span id="page-info"></span>
-<button onclick="nextPage()">Next</button>
+<button onclick="nextPage()">➡️</button>
 </div>
 
 <script>
@@ -94,7 +98,9 @@ let filteredData = [];
 let currentPage = 1;
 const perPage = 15;
 
-// LOAD
+// =====================
+// LOAD DATA
+// =====================
 fetch("data.json")
 .then(res => res.json())
 .then(json => {
@@ -103,18 +109,26 @@ fetch("data.json")
   showDefault();
 });
 
-// DEFAULT
+// =====================
+// DEFAULT VIEW
+// =====================
 function showDefault(){
+  if(data.length === 0) return;
+
   const latestMonth = data[0].date.slice(0,7);
-  filteredData = data.filter(d=> d.date.startsWith(latestMonth));
+
+  filteredData = data.filter(d => d.date.startsWith(latestMonth));
   currentPage = 1;
+
   renderPage();
 
   document.getElementById("info").innerText =
-    "Default: bulan terbaru ("+latestMonth+")";
+    "Menampilkan bulan terbaru ("+latestMonth+")";
 }
 
+// =====================
 // FILTER
+// =====================
 function applyFilter(){
   const keyword = document.getElementById("keyword").value.toLowerCase();
   const lapus = document.getElementById("lapus").value;
@@ -137,7 +151,9 @@ function applyFilter(){
     "Ditemukan "+filteredData.length+" berita";
 }
 
+// =====================
 // RESET
+// =====================
 function resetData(){
   document.getElementById("keyword").value="";
   document.getElementById("lapus").value="";
@@ -147,16 +163,19 @@ function resetData(){
   showDefault();
 }
 
+// =====================
 // PAGINATION
+// =====================
 function renderPage(){
   const start = (currentPage-1)*perPage;
   const end = start + perPage;
+
   const pageData = filteredData.slice(start,end);
 
   renderTable(pageData);
 
   document.getElementById("page-info").innerText =
-    "Page "+currentPage+" / "+Math.ceil(filteredData.length/perPage);
+    "Page "+currentPage+" / "+Math.max(1, Math.ceil(filteredData.length/perPage));
 }
 
 function nextPage(){
@@ -173,57 +192,67 @@ function prevPage(){
   }
 }
 
+// =====================
 // SHORT TEXT
+// =====================
 function shortenText(text){
+  if(!text) return "";
   let s = text.split(".");
   return s.slice(0,3).join(".") + "...";
 }
 
+// =====================
 // COPY
-function copyText(text){
+// =====================
+function copyText(encoded){
+  const text = decodeURIComponent(encoded);
   navigator.clipboard.writeText(text);
-  alert("Copied!");
+  alert("✅ Artikel berhasil dicopy");
 }
 
-// FULL
-function showFull(text){
+// =====================
+// FULL TEXT
+// =====================
+function showFull(encoded){
+  const text = decodeURIComponent(encoded);
   alert(text);
 }
 
-// RENDER
+// =====================
+// RENDER TABLE
+// =====================
 function renderTable(rows){
   const tbody = document.getElementById("table-body");
   tbody.innerHTML="";
 
   rows.forEach((d,i)=>{
+    const encoded = encodeURIComponent(d.artikel);
+
     tbody.innerHTML += `
     <tr>
-      <td>${(currentPage-1)*perPage + i +1}</td>
-      <td>${d.date}</td>
+      <td>${(currentPage-1)*perPage + i + 1}</td>
+      <td class="date-col">${d.date}</td>
       <td><a href="${d.link}" target="_blank">${d.title}</a></td>
-      <td>${shortenText(d.artikel)}</td>
+      <td class="artikel-col">${shortenText(d.artikel)}</td>
       <td>${d.lapus}</td>
       <td>
-        <button onclick="copyText(\`${d.artikel}\`)">Copy</button>
-        <button onclick="showFull(\`${d.artikel}\`)">Full</button>
+        <button onclick="copyText('${encoded}')">📋</button>
+        <button onclick="showFull('${encoded}')">👁️</button>
       </td>
     </tr>`;
   });
 }
 
+// =====================
 // EXPORT EXCEL
+// =====================
 function exportExcel(){
-  let csv = "Date,Title,Artikel,Lapus\n";
+  let ws = XLSX.utils.json_to_sheet(filteredData);
+  let wb = XLSX.utils.book_new();
 
-  filteredData.forEach(d=>{
-    csv += `"${d.date}","${d.title}","${d.artikel}","${d.lapus}"\n`;
-  });
+  XLSX.utils.book_append_sheet(wb, ws, "Berita");
 
-  let blob = new Blob([csv], {type:"text/csv"});
-  let a = document.createElement("a");
-  a.href = URL.createObjectURL(blob);
-  a.download = "export_berita.csv";
-  a.click();
+  XLSX.writeFile(wb, "export_berita.xlsx");
 }
 </script>
 
