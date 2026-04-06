@@ -1,63 +1,48 @@
 <!DOCTYPE html>
 <html>
 <head>
-  <meta charset="UTF-8">
+<meta charset="UTF-8">
 
-  <style>
-    body {
-      font-family: Arial, sans-serif;
-      margin: 10px;
-    }
+<style>
+body { font-family: Arial; margin: 10px; }
 
-    input, select, button {
-      padding: 5px;
-      margin: 5px;
-    }
+input, select, button {
+  padding: 5px;
+  margin: 5px;
+}
 
-    table {
-      width: 100%;
-      border-collapse: collapse;
-      margin-top: 10px;
-    }
+table {
+  width: 100%;
+  border-collapse: collapse;
+  margin-top: 10px;
+}
 
-    th, td {
-      border: 1px solid #ccc;
-      padding: 8px;
-      text-align: left;
-      vertical-align: top;
-    }
+th, td {
+  border: 1px solid #ccc;
+  padding: 8px;
+}
 
-    th {
-      background-color: #f2f2f2;
-    }
+th { background: #f2f2f2; }
 
-    a {
-      text-decoration: none;
-      color: blue;
-    }
+.date-col { width: 120px; }
+.artikel-col { max-width: 400px; }
 
-    .date-col {
-      width: 120px;
-      white-space: nowrap;
-    }
-
-    .artikel-col {
-      max-width: 400px;
-    }
-
-    button {
-      cursor: pointer;
-    }
-  </style>
+.pagination {
+  margin-top: 10px;
+}
+</style>
 </head>
 
 <body>
 
 <!-- FILTER -->
-<input type="text" id="keyword" placeholder="Search keyword">
+<input type="text" id="keyword" placeholder="Keyword">
+
+<input type="date" id="date_from">
+<input type="date" id="date_to">
 
 <select id="lapus">
-  <option value="">All Lapangan Usaha</option>
+  <option value="">All Lapus</option>
   <option value="A">A</option>
   <option value="B">B</option>
   <option value="C">C</option>
@@ -77,136 +62,168 @@
   <option value="RSTU">RSTU</option>
 </select>
 
-<button onclick="filterData()">Search</button>
+<button onclick="applyFilter()">Search</button>
 <button onclick="resetData()">Reset</button>
+<button onclick="exportExcel()">Export Excel</button>
 
 <p id="info"></p>
 
 <table>
-  <thead>
-    <tr>
-      <th>No</th>
-      <th class="date-col">Date</th>
-      <th>Title</th>
-      <th class="artikel-col">Artikel</th>
-      <th>Lapus</th>
-      <th>Aksi</th>
-    </tr>
-  </thead>
-  <tbody id="table-body"></tbody>
+<thead>
+<tr>
+<th>No</th>
+<th class="date-col">Date</th>
+<th>Title</th>
+<th class="artikel-col">Artikel</th>
+<th>Lapus</th>
+<th>Aksi</th>
+</tr>
+</thead>
+<tbody id="table-body"></tbody>
 </table>
+
+<div class="pagination">
+<button onclick="prevPage()">Prev</button>
+<span id="page-info"></span>
+<button onclick="nextPage()">Next</button>
+</div>
 
 <script>
 let data = [];
+let filteredData = [];
+let currentPage = 1;
+const perPage = 15;
 
-// =====================
-// LOAD DATA
-// =====================
+// LOAD
 fetch("data.json")
-  .then(res => res.json())
-  .then(json => {
-    data = json;
+.then(res => res.json())
+.then(json => {
+  data = json;
+  data.sort((a,b)=> b.date.localeCompare(a.date));
+  showDefault();
+});
 
-    data.sort((a, b) => b.date.localeCompare(a.date));
-
-    showDefault();
-  });
-
-// =====================
-// DEFAULT VIEW
-// =====================
-function showDefault() {
-  if (data.length === 0) return;
-
-  const latestMonth = data[0].date.slice(0, 7);
-
-  let latestData = data.filter(d => d.date.startsWith(latestMonth));
-
-  renderTable(latestData.slice(0, 15));
+// DEFAULT
+function showDefault(){
+  const latestMonth = data[0].date.slice(0,7);
+  filteredData = data.filter(d=> d.date.startsWith(latestMonth));
+  currentPage = 1;
+  renderPage();
 
   document.getElementById("info").innerText =
-    "Menampilkan 15 berita terbaru (" + latestMonth + ")";
+    "Default: bulan terbaru ("+latestMonth+")";
 }
 
-// =====================
 // FILTER
-// =====================
-function filterData() {
+function applyFilter(){
   const keyword = document.getElementById("keyword").value.toLowerCase();
   const lapus = document.getElementById("lapus").value;
+  const from = document.getElementById("date_from").value;
+  const to = document.getElementById("date_to").value;
 
-  let filtered = data.filter(d => {
+  filteredData = data.filter(d => {
     return (
       (!keyword || d.title.toLowerCase().includes(keyword)) &&
-      (!lapus || d.lapus === lapus)
+      (!lapus || d.lapus === lapus) &&
+      (!from || d.date >= from) &&
+      (!to || d.date <= to)
     );
   });
 
-  renderTable(filtered);
+  currentPage = 1;
+  renderPage();
 
   document.getElementById("info").innerText =
-    "Ditemukan " + filtered.length + " berita";
+    "Ditemukan "+filteredData.length+" berita";
 }
 
-// =====================
 // RESET
-// =====================
-function resetData() {
-  document.getElementById("keyword").value = "";
-  document.getElementById("lapus").value = "";
+function resetData(){
+  document.getElementById("keyword").value="";
+  document.getElementById("lapus").value="";
+  document.getElementById("date_from").value="";
+  document.getElementById("date_to").value="";
 
   showDefault();
 }
 
-// =====================
-// POTONG ARTIKEL (2-3 kalimat)
-// =====================
-function shortenText(text) {
-  if (!text) return "";
+// PAGINATION
+function renderPage(){
+  const start = (currentPage-1)*perPage;
+  const end = start + perPage;
+  const pageData = filteredData.slice(start,end);
 
-  let sentences = text.split(".");
-  let short = sentences.slice(0, 3).join(".");
+  renderTable(pageData);
 
-  return short + "...";
+  document.getElementById("page-info").innerText =
+    "Page "+currentPage+" / "+Math.ceil(filteredData.length/perPage);
 }
 
-// =====================
-// COPY TEXT
-// =====================
-function copyText(text) {
+function nextPage(){
+  if(currentPage*perPage < filteredData.length){
+    currentPage++;
+    renderPage();
+  }
+}
+
+function prevPage(){
+  if(currentPage>1){
+    currentPage--;
+    renderPage();
+  }
+}
+
+// SHORT TEXT
+function shortenText(text){
+  let s = text.split(".");
+  return s.slice(0,3).join(".") + "...";
+}
+
+// COPY
+function copyText(text){
   navigator.clipboard.writeText(text);
-  alert("Artikel berhasil dicopy!");
+  alert("Copied!");
 }
 
-// =====================
-// SHOW FULL ARTIKEL
-// =====================
-function showFull(text) {
+// FULL
+function showFull(text){
   alert(text);
 }
 
-// =====================
-// RENDER TABLE
-// =====================
-function renderTable(rows) {
+// RENDER
+function renderTable(rows){
   const tbody = document.getElementById("table-body");
-  tbody.innerHTML = "";
+  tbody.innerHTML="";
 
-  rows.forEach((d, i) => {
+  rows.forEach((d,i)=>{
     tbody.innerHTML += `
-      <tr>
-        <td>${i + 1}</td>
-        <td class="date-col">${d.date}</td>
-        <td><a href="${d.link}" target="_blank">${d.title}</a></td>
-        <td class="artikel-col">${shortenText(d.artikel)}</td>
-        <td>${d.lapus}</td>
-        <td>
-          <button onclick="copyText(\`${d.artikel}\`)">Copy</button>
-          <button onclick="showFull(\`${d.artikel}\`)">See Full</button>
-        </td>
-      </tr>
-    `;
+    <tr>
+      <td>${(currentPage-1)*perPage + i +1}</td>
+      <td>${d.date}</td>
+      <td><a href="${d.link}" target="_blank">${d.title}</a></td>
+      <td>${shortenText(d.artikel)}</td>
+      <td>${d.lapus}</td>
+      <td>
+        <button onclick="copyText(\`${d.artikel}\`)">Copy</button>
+        <button onclick="showFull(\`${d.artikel}\`)">Full</button>
+      </td>
+    </tr>`;
   });
+}
+
+// EXPORT EXCEL
+function exportExcel(){
+  let csv = "Date,Title,Artikel,Lapus\n";
+
+  filteredData.forEach(d=>{
+    csv += `"${d.date}","${d.title}","${d.artikel}","${d.lapus}"\n`;
+  });
+
+  let blob = new Blob([csv], {type:"text/csv"});
+  let a = document.createElement("a");
+  a.href = URL.createObjectURL(blob);
+  a.download = "export_berita.csv";
+  a.click();
 }
 </script>
 
