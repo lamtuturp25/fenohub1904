@@ -40,6 +40,14 @@ td { word-wrap: break-word; }
 
 .expand-row { background:#fafafa; }
 
+button { cursor:pointer; }
+
+/* Hover biar terasa interaktif */
+button:hover {
+  background-color: #f0f0f0;
+}
+
+/* PAGINATION */
 .pagination { margin-top:10px; }
 
 /* MOBILE */
@@ -103,7 +111,7 @@ td { word-wrap: break-word; }
 
 <button onclick="applyFilter()">Search</button>
 <button onclick="resetData()">Reset</button>
-<button onclick="exportExcel()">📥</button>
+<button onclick="exportExcel()">📥 Export</button>
 
 <p id="info"></p>
 
@@ -213,6 +221,9 @@ function applyFilter(){
 
   currentPage=1;
   renderPage();
+
+  document.getElementById("info").innerText =
+    "Ditemukan "+filteredData.length+" berita";
 }
 
 // RESET
@@ -257,7 +268,7 @@ function shortText(t){
 // COPY
 function copyText(e){
   navigator.clipboard.writeText(decodeURIComponent(e));
-  alert("Copied!");
+  alert("✅ Artikel berhasil dicopy");
 }
 
 // EXPAND
@@ -292,8 +303,8 @@ function renderTable(rows){
       <td>${shortText(d.artikel)}</td>
       <td>${getLapusFull(d.lapus)}</td>
       <td>
-        <button onclick="copyText('${enc}')">📋</button>
-        <button onclick="toggleFull(${id},'${enc}')">👁️</button>
+        <button title="Copy Artikel" onclick="copyText('${enc}')">📋</button>
+        <button title="Lihat Artikel Lengkap" onclick="toggleFull(${id},'${enc}')">👁️</button>
       </td>
     </tr>`;
   });
