@@ -6,19 +6,14 @@
 <script src="https://cdn.jsdelivr.net/npm/xlsx/dist/xlsx.full.min.js"></script>
 
 <style>
-body {
-  font-family: Arial;
-  margin: 10px;
-}
+body { font-family: Arial; margin: 10px; }
 
-/* FILTER */
 input, select, button {
   padding: 6px;
   margin: 5px;
-  font-size: 14px;
 }
 
-/* TABLE DESKTOP */
+/* TABLE */
 table {
   width: 100%;
   border-collapse: collapse;
@@ -33,65 +28,46 @@ th, td {
 
 th { background: #f2f2f2; }
 
-/* WIDTH CONTROL */
-th:nth-child(1) { width: 40px; }
-th:nth-child(2) { width: 100px; }
-th:nth-child(3) { width: 200px; }
-th:nth-child(4) { width: 400px; }
-th:nth-child(5) { width: 80px; }
-th:nth-child(6) { width: 100px; }
+/* WIDTH */
+th:nth-child(1){width:40px;}
+th:nth-child(2){width:110px;}
+th:nth-child(3){width:200px;}
+th:nth-child(4){width:420px;}
+th:nth-child(5){width:220px;}
+th:nth-child(6){width:110px;}
 
 td { word-wrap: break-word; }
 
-/* EXPAND ROW */
-.expand-row {
-  background: #fafafa;
-}
+.expand-row { background:#fafafa; }
 
-/* PAGINATION */
-.pagination {
-  margin-top: 10px;
-}
+.pagination { margin-top:10px; }
 
-/* ========================= */
-/* 📱 MOBILE MODE */
-/* ========================= */
-@media (max-width: 768px) {
+/* MOBILE */
+@media (max-width:768px){
+  table, thead, tbody, th, td, tr { display:block; }
+  thead{display:none;}
 
-  table, thead, tbody, th, td, tr {
-    display: block;
+  tr{
+    margin-bottom:10px;
+    border:1px solid #ddd;
+    padding:10px;
+    border-radius:8px;
   }
 
-  thead {
-    display: none;
+  td{border:none;}
+
+  td::before{
+    font-weight:bold;
+    display:block;
+    color:#555;
   }
 
-  tr {
-    margin-bottom: 10px;
-    border: 1px solid #ddd;
-    padding: 10px;
-    border-radius: 8px;
-    background: #fff;
-  }
-
-  td {
-    border: none;
-    padding: 5px 0;
-  }
-
-  td::before {
-    font-weight: bold;
-    display: block;
-    color: #555;
-  }
-
-  td:nth-child(1)::before { content: "No"; }
-  td:nth-child(2)::before { content: "Date"; }
-  td:nth-child(3)::before { content: "Title"; }
-  td:nth-child(4)::before { content: "Artikel"; }
-  td:nth-child(5)::before { content: "Lapus"; }
-  td:nth-child(6)::before { content: "Aksi"; }
-
+  td:nth-child(1)::before{content:"No";}
+  td:nth-child(2)::before{content:"Date";}
+  td:nth-child(3)::before{content:"Title";}
+  td:nth-child(4)::before{content:"Artikel";}
+  td:nth-child(5)::before{content:"Lapus";}
+  td:nth-child(6)::before{content:"Aksi";}
 }
 </style>
 </head>
@@ -101,8 +77,8 @@ td { word-wrap: break-word; }
 <!-- FILTER -->
 <input type="text" id="keyword" placeholder="Keyword">
 
-<input type="date" id="date_from" onchange="autoFillDateTo()">
-<input type="date" id="date_to">
+<input type="date" id="date_from" onchange="handleDateFrom()">
+<input type="date" id="date_to" disabled>
 
 <select id="lapus">
 <option value="">All Lapus</option>
@@ -152,52 +128,91 @@ td { word-wrap: break-word; }
 </div>
 
 <script>
-let data = [];
-let filteredData = [];
-let currentPage = 1;
-const perPage = 15;
+let data=[];
+let filteredData=[];
+let currentPage=1;
+const perPage=15;
 
+// =====================
+// LAPUS MAPPING
+// =====================
+const lapusMap = {
+"A":"Pertanian, Kehutanan, dan Perikanan",
+"B":"Pertambangan dan Penggalian",
+"C":"Industri Pengolahan",
+"D":"Pengadaan Listrik dan Gas",
+"E":"Pengadaan Air & Pengelolaan Sampah",
+"F":"Konstruksi",
+"G":"Perdagangan Besar & Eceran",
+"H":"Transportasi & Pergudangan",
+"I":"Akomodasi & Makan Minum",
+"J":"Informasi dan Komunikasi",
+"K":"Jasa Keuangan",
+"L":"Real Estate",
+"MN":"Jasa Perusahaan",
+"O":"Administrasi Pemerintahan",
+"P":"Pendidikan",
+"Q":"Kesehatan & Kegiatan Sosial",
+"RSTU":"Jasa Lainnya"
+};
+
+function getLapusFull(code){
+  return code + " - " + (lapusMap[code] || code);
+}
+
+// =====================
 // LOAD
+// =====================
 fetch("data.json")
 .then(res=>res.json())
 .then(json=>{
-  data = json;
-  data.sort((a,b)=> b.date.localeCompare(a.date));
+  data=json;
+  data.sort((a,b)=>b.date.localeCompare(a.date));
   showDefault();
 });
 
 // DEFAULT
 function showDefault(){
-  const latestMonth = data[0].date.slice(0,7);
-  filteredData = data.filter(d=> d.date.startsWith(latestMonth));
+  const latest=data[0].date.slice(0,7);
+  filteredData=data.filter(d=>d.date.startsWith(latest));
   currentPage=1;
   renderPage();
 }
 
+// DATE CONTROL
+function handleDateFrom(){
+  const from=document.getElementById("date_from").value;
+  const to=document.getElementById("date_to");
+
+  if(from){
+    to.disabled=false;
+    to.min=from;
+    to.max=data[0].date;
+
+    if(!to.value || to.value<from){
+      to.value=from;
+    }
+  }
+}
+
 // FILTER
 function applyFilter(){
-  const keyword = document.getElementById("keyword").value.toLowerCase();
-  const lapus = document.getElementById("lapus").value;
-  const from = document.getElementById("date_from").value;
-  const to = document.getElementById("date_to").value;
+  const keyword=document.getElementById("keyword").value.toLowerCase();
+  const lapus=document.getElementById("lapus").value;
+  const from=document.getElementById("date_from").value;
+  const to=document.getElementById("date_to").value;
 
-  filteredData = data.filter(d=>{
-    return (
-      (!keyword || d.title.toLowerCase().includes(keyword)) &&
-      (!lapus || d.lapus === lapus) &&
-      (!from || d.date >= from) &&
-      (!to || d.date <= to)
+  filteredData=data.filter(d=>{
+    return(
+      (!keyword||d.title.toLowerCase().includes(keyword)) &&
+      (!lapus||d.lapus===lapus) &&
+      (!from||d.date>=from) &&
+      (!to||d.date<=to)
     );
   });
 
   currentPage=1;
   renderPage();
-}
-
-// AUTO DATE
-function autoFillDateTo(){
-  if(data.length===0) return;
-  document.getElementById("date_to").value = data[0].date;
 }
 
 // RESET
@@ -206,6 +221,8 @@ function resetData(){
   document.getElementById("lapus").value="";
   document.getElementById("date_from").value="";
   document.getElementById("date_to").value="";
+  document.getElementById("date_to").disabled=true;
+
   showDefault();
 }
 
@@ -232,33 +249,28 @@ function prevPage(){
 }
 
 // SHORT TEXT
-function shortText(text){
-  let s=text.split(".");
+function shortText(t){
+  let s=t.split(".");
   return s.slice(0,3).join(".")+"...";
 }
 
 // COPY
-function copyText(encoded){
-  navigator.clipboard.writeText(decodeURIComponent(encoded));
+function copyText(e){
+  navigator.clipboard.writeText(decodeURIComponent(e));
   alert("Copied!");
 }
 
-// TOGGLE FULL
-function toggleFull(id, encoded){
-  let row = document.getElementById("expand-"+id);
+// EXPAND
+function toggleFull(id,e){
+  let row=document.getElementById("expand-"+id);
 
-  if(row){
-    row.remove();
-    return;
-  }
+  if(row){row.remove();return;}
 
-  const text = decodeURIComponent(encoded);
+  let tr=document.createElement("tr");
+  tr.id="expand-"+id;
+  tr.className="expand-row";
 
-  const tr = document.createElement("tr");
-  tr.id = "expand-"+id;
-  tr.className = "expand-row";
-
-  tr.innerHTML = `<td colspan="6">${text}</td>`;
+  tr.innerHTML=`<td colspan="6">${decodeURIComponent(e)}</td>`;
 
   document.getElementById("row-"+id).after(tr);
 }
@@ -269,19 +281,19 @@ function renderTable(rows){
   tbody.innerHTML="";
 
   rows.forEach((d,i)=>{
-    const id = (currentPage-1)*perPage + i;
-    const encoded = encodeURIComponent(d.artikel);
+    const id=(currentPage-1)*perPage+i;
+    const enc=encodeURIComponent(d.artikel);
 
-    tbody.innerHTML += `
+    tbody.innerHTML+=`
     <tr id="row-${id}">
       <td>${id+1}</td>
       <td>${d.date}</td>
       <td>${d.title}</td>
       <td>${shortText(d.artikel)}</td>
-      <td>${d.lapus}</td>
+      <td>${getLapusFull(d.lapus)}</td>
       <td>
-        <button onclick="copyText('${encoded}')">📋</button>
-        <button onclick="toggleFull(${id}, '${encoded}')">👁️</button>
+        <button onclick="copyText('${enc}')">📋</button>
+        <button onclick="toggleFull(${id},'${enc}')">👁️</button>
       </td>
     </tr>`;
   });
@@ -289,10 +301,10 @@ function renderTable(rows){
 
 // EXPORT
 function exportExcel(){
-  let ws = XLSX.utils.json_to_sheet(filteredData);
-  let wb = XLSX.utils.book_new();
-  XLSX.utils.book_append_sheet(wb, ws, "Berita");
-  XLSX.writeFile(wb, "export.xlsx");
+  let ws=XLSX.utils.json_to_sheet(filteredData);
+  let wb=XLSX.utils.book_new();
+  XLSX.utils.book_append_sheet(wb,ws,"Berita");
+  XLSX.writeFile(wb,"export.xlsx");
 }
 </script>
 
