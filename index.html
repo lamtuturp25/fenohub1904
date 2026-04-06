@@ -1,6 +1,169 @@
 <!DOCTYPE html>
 <html>
+<head>
+  <meta charset="UTF-8">
+  <title>News Dashboard</title>
+
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      margin: 10px;
+    }
+
+    input, select, button {
+      padding: 5px;
+      margin: 5px;
+    }
+
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      margin-top: 10px;
+    }
+
+    th, td {
+      border: 1px solid #ccc;
+      padding: 8px;
+      text-align: left;
+    }
+
+    th {
+      background-color: #f2f2f2;
+    }
+
+    a {
+      text-decoration: none;
+      color: blue;
+    }
+  </style>
+</head>
+
 <body>
-<h1>WEB NYALA</h1>
+
+<!-- FILTER -->
+<input type="text" id="keyword" placeholder="Search keyword">
+
+<select id="lapus">
+  <option value="">All Lapangan Usaha</option>
+  <option value="A">A Pertanian</option>
+  <option value="B">B Pertambangan</option>
+  <option value="C">C Industri</option>
+  <option value="D">D Listrik & Gas</option>
+  <option value="E">E Air & Sampah</option>
+  <option value="F">F Konstruksi</option>
+  <option value="G">G Perdagangan</option>
+  <option value="H">H Transportasi</option>
+  <option value="I">I Akomodasi</option>
+  <option value="J">J Informasi</option>
+  <option value="K">K Keuangan</option>
+  <option value="L">L Real Estate</option>
+  <option value="MN">M,N Jasa Perusahaan</option>
+  <option value="O">O Pemerintahan</option>
+  <option value="P">P Pendidikan</option>
+  <option value="Q">Q Kesehatan</option>
+  <option value="RSTU">R,S,T,U Lainnya</option>
+</select>
+
+<button onclick="filterData()">Search</button>
+<button onclick="resetData()">Reset</button>
+
+<p id="info"></p>
+
+<!-- TABLE -->
+<table>
+  <thead>
+    <tr>
+      <th>Date</th>
+      <th>Title</th>
+      <th>Artikel</th>
+      <th>Lapus</th>
+    </tr>
+  </thead>
+  <tbody id="table-body"></tbody>
+</table>
+
+<script>
+let data = [];
+
+// =====================
+// LOAD DATA
+// =====================
+fetch("data.json")
+  .then(res => res.json())
+  .then(json => {
+    data = json;
+
+    // urutkan terbaru
+    data.sort((a, b) => b.date.localeCompare(a.date));
+
+    showDefault();
+  });
+
+// =====================
+// DEFAULT VIEW
+// =====================
+function showDefault() {
+  if (data.length === 0) return;
+
+  const latestMonth = data[0].date.slice(0, 7);
+
+  let latestData = data.filter(d => d.date.startsWith(latestMonth));
+
+  renderTable(latestData.slice(0, 15));
+
+  document.getElementById("info").innerText =
+    "Menampilkan 15 berita terbaru (" + latestMonth + ")";
+}
+
+// =====================
+// FILTER
+// =====================
+function filterData() {
+  const keyword = document.getElementById("keyword").value.toLowerCase();
+  const lapus = document.getElementById("lapus").value;
+
+  let filtered = data.filter(d => {
+    return (
+      (!keyword || d.title.toLowerCase().includes(keyword)) &&
+      (!lapus || d.lapus === lapus)
+    );
+  });
+
+  renderTable(filtered);
+
+  document.getElementById("info").innerText =
+    "Ditemukan " + filtered.length + " berita";
+}
+
+// =====================
+// RESET
+// =====================
+function resetData() {
+  document.getElementById("keyword").value = "";
+  document.getElementById("lapus").value = "";
+
+  showDefault();
+}
+
+// =====================
+// RENDER TABLE
+// =====================
+function renderTable(rows) {
+  const tbody = document.getElementById("table-body");
+  tbody.innerHTML = "";
+
+  rows.forEach(d => {
+    tbody.innerHTML += `
+      <tr>
+        <td>${d.date}</td>
+        <td><a href="${d.link}" target="_blank">${d.title}</a></td>
+        <td>${d.artikel}</td>
+        <td>${d.lapus}</td>
+      </tr>
+    `;
+  });
+}
+</script>
+
 </body>
 </html>
