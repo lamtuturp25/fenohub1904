@@ -42,7 +42,7 @@ td { word-wrap: break-word; }
 
 button { cursor:pointer; }
 
-/* Hover biar terasa interaktif */
+/* Hover */
 button:hover {
   background-color: #f0f0f0;
 }
@@ -169,12 +169,16 @@ function getLapusFull(code){
 }
 
 // =====================
-// LOAD
+// LOAD (FIX CACHE DI SINI 🔥)
 // =====================
-fetch("data.json")
+fetch("data.json?v=" + new Date().getTime())
 .then(res=>res.json())
 .then(json=>{
   data=json;
+
+  // DEBUG (opsional, bisa dihapus nanti)
+  console.log("Data terbaru:", data[0]);
+
   data.sort((a,b)=>b.date.localeCompare(a.date));
   showDefault();
 });
@@ -303,8 +307,8 @@ function renderTable(rows){
       <td>${shortText(d.artikel)}</td>
       <td>${getLapusFull(d.lapus)}</td>
       <td>
-        <button title="Copy Artikel" onclick="copyText('${enc}')">📋</button>
-        <button title="Lihat Artikel Lengkap" onclick="toggleFull(${id},'${enc}')">👁️</button>
+        <button onclick="copyText('${enc}')">📋</button>
+        <button onclick="toggleFull(${id},'${enc}')">👁️</button>
       </td>
     </tr>`;
   });
