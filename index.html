@@ -31,9 +31,9 @@ th { background: #f2f2f2; }
 /* WIDTH */
 th:nth-child(1){width:40px;}
 th:nth-child(2){width:110px;}
-th:nth-child(3){width:200px;}
+th:nth-child(3){width:220px;}
 th:nth-child(4){width:420px;}
-th:nth-child(5){width:220px;}
+th:nth-child(5){width:240px;}
 th:nth-child(6){width:110px;}
 
 td { word-wrap: break-word; }
@@ -42,9 +42,19 @@ td { word-wrap: break-word; }
 
 button { cursor:pointer; }
 
-/* Hover */
 button:hover {
   background-color: #f0f0f0;
+}
+
+/* LINK */
+a.title-link {
+  color: #1a0dab;
+  text-decoration: none;
+  font-weight: 500;
+}
+
+a.title-link:hover {
+  text-decoration: underline;
 }
 
 /* PAGINATION */
@@ -90,23 +100,23 @@ button:hover {
 
 <select id="lapus">
 <option value="">All Lapus</option>
-<option value="A">A</option>
-<option value="B">B</option>
-<option value="C">C</option>
-<option value="D">D</option>
-<option value="E">E</option>
-<option value="F">F</option>
-<option value="G">G</option>
-<option value="H">H</option>
-<option value="I">I</option>
-<option value="J">J</option>
-<option value="K">K</option>
-<option value="L">L</option>
-<option value="MN">MN</option>
-<option value="O">O</option>
-<option value="P">P</option>
-<option value="Q">Q</option>
-<option value="RSTU">RSTU</option>
+<option value="A">A. Pertanian, Kehutanan, dan Perikanan</option>
+<option value="B">B. Pertambangan dan Penggalian</option>
+<option value="C">C. Industri Pengolahan</option>
+<option value="D">D. Pengadaan Listrik dan Gas</option>
+<option value="E">E. Pengadaan Air & Pengelolaan Sampah</option>
+<option value="F">F. Konstruksi</option>
+<option value="G">G. Perdagangan Besar & Eceran</option>
+<option value="H">H. Transportasi & Pergudangan</option>
+<option value="I">I. Akomodasi & Makan Minum</option>
+<option value="J">J. Informasi dan Komunikasi</option>
+<option value="K">K. Jasa Keuangan</option>
+<option value="L">L. Real Estate</option>
+<option value="MN">MN. Jasa Perusahaan</option>
+<option value="O">O. Administrasi Pemerintahan</option>
+<option value="P">P. Pendidikan</option>
+<option value="Q">Q. Kesehatan & Kegiatan Sosial</option>
+<option value="RSTU">RSTU. Jasa Lainnya</option>
 </select>
 
 <button onclick="applyFilter()">Search</button>
@@ -141,9 +151,6 @@ let filteredData=[];
 let currentPage=1;
 const perPage=15;
 
-// =====================
-// LAPUS MAPPING
-// =====================
 const lapusMap = {
 "A":"Pertanian, Kehutanan, dan Perikanan",
 "B":"Pertambangan dan Penggalian",
@@ -165,25 +172,17 @@ const lapusMap = {
 };
 
 function getLapusFull(code){
-  return code + " - " + (lapusMap[code] || code);
+  return code + ". " + (lapusMap[code] || code);
 }
 
-// =====================
-// LOAD (FIX CACHE DI SINI 🔥)
-// =====================
 fetch("data.json?v=" + new Date().getTime())
 .then(res=>res.json())
 .then(json=>{
   data=json;
-
-  // DEBUG (opsional, bisa dihapus nanti)
-  console.log("Data terbaru:", data[0]);
-
   data.sort((a,b)=>b.date.localeCompare(a.date));
   showDefault();
 });
 
-// DEFAULT
 function showDefault(){
   const latest=data[0].date.slice(0,7);
   filteredData=data.filter(d=>d.date.startsWith(latest));
@@ -191,7 +190,6 @@ function showDefault(){
   renderPage();
 }
 
-// DATE CONTROL
 function handleDateFrom(){
   const from=document.getElementById("date_from").value;
   const to=document.getElementById("date_to");
@@ -207,7 +205,6 @@ function handleDateFrom(){
   }
 }
 
-// FILTER
 function applyFilter(){
   const keyword=document.getElementById("keyword").value.toLowerCase();
   const lapus=document.getElementById("lapus").value;
@@ -230,7 +227,6 @@ function applyFilter(){
     "Ditemukan "+filteredData.length+" berita";
 }
 
-// RESET
 function resetData(){
   document.getElementById("keyword").value="";
   document.getElementById("lapus").value="";
@@ -241,7 +237,6 @@ function resetData(){
   showDefault();
 }
 
-// PAGINATION
 function renderPage(){
   const start=(currentPage-1)*perPage;
   const rows=filteredData.slice(start,start+perPage);
@@ -263,19 +258,16 @@ function prevPage(){
   }
 }
 
-// SHORT TEXT
 function shortText(t){
   let s=t.split(".");
   return s.slice(0,3).join(".")+"...";
 }
 
-// COPY
 function copyText(e){
   navigator.clipboard.writeText(decodeURIComponent(e));
   alert("✅ Artikel berhasil dicopy");
 }
 
-// EXPAND
 function toggleFull(id,e){
   let row=document.getElementById("expand-"+id);
 
@@ -290,7 +282,6 @@ function toggleFull(id,e){
   document.getElementById("row-"+id).after(tr);
 }
 
-// RENDER
 function renderTable(rows){
   const tbody=document.getElementById("table-body");
   tbody.innerHTML="";
@@ -299,11 +290,15 @@ function renderTable(rows){
     const id=(currentPage-1)*perPage+i;
     const enc=encodeURIComponent(d.artikel);
 
+    const titleHTML = d.link
+      ? `<a href="${d.link}" target="_blank" class="title-link">${d.title}</a>`
+      : d.title;
+
     tbody.innerHTML+=`
     <tr id="row-${id}">
       <td>${id+1}</td>
       <td>${d.date}</td>
-      <td>${d.title}</td>
+      <td>${titleHTML}</td>
       <td>${shortText(d.artikel)}</td>
       <td>${getLapusFull(d.lapus)}</td>
       <td>
@@ -314,7 +309,6 @@ function renderTable(rows){
   });
 }
 
-// EXPORT
 function exportExcel(){
   let ws=XLSX.utils.json_to_sheet(filteredData);
   let wb=XLSX.utils.book_new();
